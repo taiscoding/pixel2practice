@@ -1,0 +1,4 @@
+/* Reset handled in App.css; keep entry thin. */
+body {
+  margin: 0;
+}
