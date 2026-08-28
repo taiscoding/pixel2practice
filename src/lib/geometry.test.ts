@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { iou, normalizeBox, pointInBox } from './geometry.ts'
+import { bestIouMulti, iou, normalizeBox, pointInBox } from './geometry.ts'
 
 test('iou identical boxes is 1', () => {
   const a = { x: 0.1, y: 0.2, w: 0.3, h: 0.4 }
@@ -35,6 +35,17 @@ test('normalizeBox orders corners', () => {
   assert.equal(box.y, 0.2)
   assert.ok(Math.abs(box.w - 0.4) < 1e-9)
   assert.ok(Math.abs(box.h - 0.4) < 1e-9)
+})
+
+test('bestIouMulti uses best guess-truth pair', () => {
+  const truths = [
+    { x: 0.6, y: 0.1, w: 0.2, h: 0.4 },
+    { x: 0.1, y: 0.5, w: 0.15, h: 0.2 },
+  ]
+  const good = { x: 0.62, y: 0.12, w: 0.18, h: 0.38 }
+  const stray = { x: 0, y: 0, w: 0.05, h: 0.05 }
+  assert.ok(bestIouMulti([stray, good], truths) > 0.5)
+  assert.equal(bestIouMulti([], truths), 0)
 })
 
 test('pointInBox inclusive edges', () => {

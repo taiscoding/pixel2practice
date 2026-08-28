@@ -41,6 +41,17 @@ export function iou(a: NormBox, b: NormBox): number {
   return inter / union
 }
 
+export function bestIouMulti(guesses: NormBox[], truths: NormBox[]): number {
+  if (guesses.length === 0 || truths.length === 0) return 0
+  let best = 0
+  for (const guess of guesses) {
+    for (const truth of truths) {
+      best = Math.max(best, iou(guess, truth))
+    }
+  }
+  return best
+}
+
 export function pointInBox(px: number, py: number, box: NormBox): boolean {
   return (
     px >= box.x &&

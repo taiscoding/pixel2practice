@@ -148,6 +148,45 @@ def box_from_xyxy(
     return {"x": x, "y": y, "w": w, "h": h}
 
 
+def box_area_norm(b: dict[str, float]) -> float:
+    return b["w"] * b["h"]
+
+
+def box_center_norm(b: dict[str, float]) -> tuple[float, float]:
+    return (b["x"] + b["w"] / 2, b["y"] + b["h"] / 2)
+
+
+def filter_outlier_boxes(boxes: list[dict[str, float]]) -> list[dict[str, float]]:
+    """Drop tiny distant boxes that inflate unions (e.g. marker vs main effusion)."""
+    if len(boxes) <= 1:
+        return boxes
+    areas = [box_area_norm(b) for b in boxes]
+    max_area = max(areas)
+    primary = boxes[areas.index(max_area)]
+    pcx, pcy = box_center_norm(primary)
+    kept: list[dict[str, float]] = []
+    for b in boxes:
+        area = box_area_norm(b)
+        if area >= 0.15 * max_area:
+            kept.append(b)
+            continue
+        cx, cy = box_center_norm(b)
+        dist = ((cx - pcx) ** 2 + (cy - pcy) ** 2) ** 0.5
+        if dist < 0.2:
+            kept.append(b)
+    return kept if kept else [primary]
+
+
+def primary_box(boxes: list[dict[str, float]]) -> dict[str, float]:
+    return max(boxes, key=box_area_norm)
+
+
+def teaching_targets(boxes: list[dict[str, float]]) -> tuple[dict[str, float], list[dict[str, float]]]:
+    """Primary = largest region; truths = all non-outlier annotator boxes."""
+    filtered = filter_outlier_boxes(boxes)
+    return primary_box(filtered), filtered
+
+
 def union_box(boxes: list[dict[str, float]]) -> dict[str, float] | None:
     if not boxes:
         return None
@@ -261,8 +300,10 @@ def build_from_padchest(json_path: Path, images_dir: Path | None, limit: int, se
                 continue
             cue = pick_sentence(finding)
             boxes = extract_boxes(finding, img_w, img_h)
-            truth = union_box(boxes)
-            if not cue or not truth:
+            if not boxes:
+                continue
+            truth, truths = teaching_targets(boxes)
+            if not cue:
                 continue
             drills.append(
                 {
@@ -273,7 +314,7 @@ def build_from_padchest(json_path: Path, images_dir: Path | None, limit: int, se
                     "image_file": image_id,
                     "cue": cue,
                     "truth": truth,
-                    "truths": boxes,
+                    "truths": truths,
                     "attribution": "PadChest-GR (research use; BIMCV)",
                 }
             )
@@ -427,12 +468,12 @@ def finalize_vindr(drills: list[dict[str, Any]], images_dir: Path) -> None:
                 box = box_from_xyxy(b["x1"], b["y1"], b["x2"], b["y2"], w, h)
                 if box:
                     boxes.append(box)
-            truth = union_box(boxes)
+            truth, truths = teaching_targets(boxes)
             if not truth:
                 continue
             d["image"] = f"/drills/{dest_name}"
             d["truth"] = truth
-            d["truths"] = boxes
+            d["truths"] = truths
             d.pop("image_file", None)
             kept.append(d)
     drills[:] = kept
@@ -505,7 +546,7 @@ def build_from_chestxdet(limit: int, seed: int) -> list[dict[str, Any]]:
             img.convert("RGB").save(dest, quality=90)
 
         for label, boxes in by_label.items():
-            truth = union_box(boxes)
+            truth, truths = teaching_targets(boxes)
             if not truth:
                 continue
             cue = CHESTXDET_CUES.get(label, f"There is {label.lower()}.")
@@ -517,7 +558,7 @@ def build_from_chestxdet(limit: int, seed: int) -> list[dict[str, Any]]:
                     "image": f"/drills/{dest_name}",
                     "cue": cue,
                     "truth": truth,
-                    "truths": boxes,
+                    "truths": truths,
                     "attribution": CHESTXDET_ATTR,
                 }
             )
@@ -754,12 +795,12 @@ def build_from_xraydar(
                 box = box_from_xyxy(b["x1"], b["y1"], b["x2"], b["y2"], w, h)
                 if box:
                     boxes.append(box)
-        truth = union_box(boxes)
+        truth, truths = teaching_targets(boxes)
         if not truth:
             continue
         d["image"] = f"/drills/{dest_name}"
         d["truth"] = truth
-        d["truths"] = boxes
+        d["truths"] = truths
         d.pop("image_file", None)
         d.pop("xray_id", None)
         d.pop("_cue_score", None)

@@ -6,9 +6,9 @@ export type CaseItem = {
   image: string
   /** Finding sentence shown as the cue. */
   cue: string
-  /** Primary teaching target (often the union of truths). */
+  /** Primary teaching target (largest annotator region). */
   truth: NormBox
-  /** Optional per-region boxes from the source dataset. */
+  /** All annotator regions for this label (multi-focal findings). */
   truths?: NormBox[]
   attribution: string
   source?: string
@@ -56,6 +56,11 @@ export const CASES = DEMO_CASES
 
 /** Pass threshold aligned with RadGame Localize (IoU > 0.25). */
 export const IOU_PASS = 0.25
+
+export function teachingTargets(item: CaseItem): NormBox[] {
+  if (item.truths && item.truths.length > 0) return item.truths
+  return [item.truth]
+}
 
 export function isCaseItem(value: unknown): value is CaseItem {
   if (!value || typeof value !== 'object') return false

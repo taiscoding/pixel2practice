@@ -121,6 +121,18 @@ button {
   line-height: 1.45;
 }
 
+.box-count {
+  margin: 0;
+  font-family: var(--mono);
+  font-size: 0.78rem;
+  color: var(--amber);
+}
+
+.btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
 .result {
   padding: 0.75rem 0.85rem;
   border: 1px solid var(--line);
@@ -328,6 +340,11 @@ button {
 .box--guess {
   border-color: var(--amber);
   background: var(--amber-soft);
+}
+
+.box--draft {
+  border-style: dashed;
+  opacity: 0.85;
 }
 
 .box--truth {

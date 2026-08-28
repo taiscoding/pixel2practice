@@ -4,9 +4,10 @@ import {
   DEMO_CASES,
   IOU_PASS,
   isCaseItem,
+  teachingTargets,
   type CaseItem,
 } from './lib/cases'
-import { iou, type NormBox } from './lib/geometry'
+import { bestIouMulti, type NormBox } from './lib/geometry'
 import {
   clearSession,
   createEmptySession,
@@ -28,9 +29,9 @@ export default function App() {
     loadSession() ?? createEmptySession(),
   )
   const [index, setIndex] = useState(() => loadSession()?.index ?? 0)
-  const [guess, setGuess] = useState<NormBox | null>(null)
+  const [guesses, setGuesses] = useState<NormBox[]>([])
   const [phase, setPhase] = useState<Phase>('locate')
-  const [showGuess, setShowGuess] = useState(true)
+  const [showGuesses, setShowGuesses] = useState(true)
   const [showTruth, setShowTruth] = useState(true)
 
   useEffect(() => {
@@ -53,9 +54,9 @@ export default function App() {
         const saved = loadSession()
         setSession(saved ?? createEmptySession())
         setIndex(saved?.index ?? 0)
-        setGuess(null)
+        setGuesses([])
         setPhase('locate')
-        setShowGuess(true)
+        setShowGuesses(true)
         setShowTruth(true)
       })
       .catch(() => {
@@ -67,28 +68,34 @@ export default function App() {
   }, [])
 
   const item = cases[index] ?? DEMO_CASES[0]
+  const targets = useMemo(() => teachingTargets(item), [item])
   const score = useMemo(
-    () => (guess ? iou(guess, item.truth) : 0),
-    [guess, item.truth],
+    () => (guesses.length > 0 ? bestIouMulti(guesses, targets) : 0),
+    [guesses, targets],
   )
   const passed = score >= IOU_PASS
   const stats = summarizeAttempts(session.attempts)
   const completedCount = session.completedCaseIds.length
+  const targetCount = targets.length
 
-  const submit = (box: NormBox) => {
+  const addBox = (box: NormBox) => {
     if (phase !== 'locate') return
-    const iouScore = iou(box, item.truth)
-    setGuess(box)
+    setGuesses((prev) => [...prev, box])
+  }
+
+  const scoreAttempt = () => {
+    if (phase !== 'locate' || guesses.length === 0) return
+    const iouScore = bestIouMulti(guesses, targets)
     setPhase('scored')
-    setShowGuess(true)
+    setShowGuesses(true)
     setShowTruth(true)
     setSession((s) => recordAttempt(s, item, iouScore))
   }
 
   const retry = () => {
-    setGuess(null)
+    setGuesses([])
     setPhase('locate')
-    setShowGuess(true)
+    setShowGuesses(true)
     setShowTruth(true)
   }
 
@@ -99,25 +106,30 @@ export default function App() {
         ? s.completedCaseIds
         : [...s.completedCaseIds, item.id],
     }))
-    setGuess(null)
+    setGuesses([])
     setPhase('locate')
-    setShowGuess(true)
+    setShowGuesses(true)
     setShowTruth(true)
     setIndex((i) => (i + 1) % cases.length)
   }
 
-  const resetBox = () => {
+  const undoBox = () => {
     if (phase !== 'locate') return
-    setGuess(null)
+    setGuesses((prev) => prev.slice(0, -1))
+  }
+
+  const clearBoxes = () => {
+    if (phase !== 'locate') return
+    setGuesses([])
   }
 
   const resetSession = () => {
     clearSession()
     setSession(createEmptySession())
     setIndex(0)
-    setGuess(null)
+    setGuesses([])
     setPhase('locate')
-    setShowGuess(true)
+    setShowGuesses(true)
     setShowTruth(true)
   }
 
@@ -141,17 +153,26 @@ export default function App() {
           <h1 className="cue">{item.cue}</h1>
           <p className="hint">
             {phase === 'locate'
-              ? 'Drag a box over the region this sentence describes.'
+              ? targetCount > 1
+                ? `Drag ${targetCount} boxes if the sentence names multiple regions, then score.`
+                : 'Drag one or more boxes over the region this sentence describes, then score.'
               : passed
                 ? 'Hit. Toggle overlays to compare, then go to the next case.'
                 : 'Miss. Toggle overlays, then try again or move on.'}
           </p>
 
+          {phase === 'locate' && guesses.length > 0 ? (
+            <p className="box-count">
+              {guesses.length} box{guesses.length === 1 ? '' : 'es'} drawn
+            </p>
+          ) : null}
+
           {phase === 'scored' ? (
             <div className="result" data-pass={passed}>
               <p className="result-label">{passed ? 'Pass' : 'Miss'}</p>
               <p className="result-meta">
-                IoU {score.toFixed(2)} · pass at {IOU_PASS.toFixed(2)}
+                Best IoU {score.toFixed(2)} · pass at {IOU_PASS.toFixed(2)}
+                {targetCount > 1 ? ` · ${targetCount} teaching regions` : ''}
               </p>
             </div>
           ) : null}
@@ -161,11 +182,11 @@ export default function App() {
               <label className="toggle">
                 <input
                   type="checkbox"
-                  checked={showGuess}
-                  onChange={(e) => setShowGuess(e.target.checked)}
+                  checked={showGuesses}
+                  onChange={(e) => setShowGuesses(e.target.checked)}
                 />
                 <span className="swatch swatch--guess" aria-hidden />
-                Your box
+                Your boxes
               </label>
               <label className="toggle">
                 <input
@@ -174,16 +195,34 @@ export default function App() {
                   onChange={(e) => setShowTruth(e.target.checked)}
                 />
                 <span className="swatch swatch--truth" aria-hidden />
-                Teaching target
+                Teaching targets
               </label>
             </div>
           ) : null}
 
           <div className="actions">
             {phase === 'locate' ? (
-              <button type="button" className="btn ghost" onClick={resetBox}>
-                Clear box
-              </button>
+              <>
+                <button
+                  type="button"
+                  className="btn primary"
+                  disabled={guesses.length === 0}
+                  onClick={scoreAttempt}
+                >
+                  Score
+                </button>
+                <button
+                  type="button"
+                  className="btn ghost"
+                  disabled={guesses.length === 0}
+                  onClick={undoBox}
+                >
+                  Undo last
+                </button>
+                <button type="button" className="btn ghost" onClick={clearBoxes}>
+                  Clear all
+                </button>
+              </>
             ) : (
               <>
                 {!passed ? (
@@ -224,18 +263,19 @@ export default function App() {
           src={item.image}
           alt={`Chest radiograph for case ${item.id}`}
           enabled={phase === 'locate'}
-          truth={item.truth}
+          truths={targets}
           showTruth={phase === 'scored' && showTruth}
-          showGuess={phase === 'locate' || showGuess}
-          guess={guess}
-          onGuess={submit}
+          showGuesses={phase === 'locate' || showGuesses}
+          guesses={guesses}
+          onAddBox={addBox}
         />
       </main>
 
       <footer className="foot">
         <p>
-          Self-eval mode: progress saves in this browser. Export the log when you
-          want a record for later review.
+          Self-eval mode: progress saves in this browser. Score uses your best
+          box against any teaching region. Export the log when you want a record
+          for later review.
         </p>
       </footer>
     </div>

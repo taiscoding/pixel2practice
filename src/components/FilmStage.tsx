@@ -15,11 +15,11 @@ type Props = {
   src: string
   alt: string
   enabled: boolean
-  truth?: NormBox
+  truths: NormBox[]
   showTruth: boolean
-  showGuess?: boolean
-  guess: NormBox | null
-  onGuess: (box: NormBox) => void
+  showGuesses?: boolean
+  guesses: NormBox[]
+  onAddBox: (box: NormBox) => void
 }
 
 type Point = { x: number; y: number }
@@ -48,11 +48,11 @@ export function FilmStage({
   src,
   alt,
   enabled,
-  truth,
+  truths,
   showTruth,
-  showGuess = true,
-  guess,
-  onGuess,
+  showGuesses = true,
+  guesses,
+  onAddBox,
 }: Props) {
   const wrapRef = useRef<HTMLDivElement>(null)
   const dragStartRef = useRef<Point | null>(null)
@@ -87,9 +87,9 @@ export function FilmStage({
       const box = normalizeBox(start, p)
       setDraft(null)
       if (box.w < minBox || box.h < minBox) return
-      onGuess(box)
+      onAddBox(box)
     },
-    [minBox, onGuess, toNorm],
+    [minBox, onAddBox, toNorm],
   )
 
   const onPointerDown = (e: ReactPointerEvent<HTMLDivElement>) => {
@@ -119,8 +119,6 @@ export function FilmStage({
     finishDrag(e.clientX, e.clientY)
   }
 
-  const paint = draft ?? (showGuess ? guess : null)
-
   return (
     <div className="film-shell">
       <div
@@ -139,30 +137,49 @@ export function FilmStage({
       >
         <img src={src} alt={alt} draggable={false} />
         {enabled && coarse ? (
-          <p className="film-touch-hint">Drag a box on the finding.</p>
+          <p className="film-touch-hint">
+            Drag boxes on every region the sentence names.
+          </p>
         ) : null}
-        {paint ? (
+        {showGuesses
+          ? guesses.map((box, i) => (
+              <div
+                key={`guess-${i}`}
+                className="box box--guess"
+                style={{
+                  left: `${box.x * 100}%`,
+                  top: `${box.y * 100}%`,
+                  width: `${box.w * 100}%`,
+                  height: `${box.h * 100}%`,
+                }}
+              />
+            ))
+          : null}
+        {draft ? (
           <div
-            className="box box--guess"
+            className="box box--guess box--draft"
             style={{
-              left: `${paint.x * 100}%`,
-              top: `${paint.y * 100}%`,
-              width: `${paint.w * 100}%`,
-              height: `${paint.h * 100}%`,
+              left: `${draft.x * 100}%`,
+              top: `${draft.y * 100}%`,
+              width: `${draft.w * 100}%`,
+              height: `${draft.h * 100}%`,
             }}
           />
         ) : null}
-        {showTruth && truth ? (
-          <div
-            className="box box--truth"
-            style={{
-              left: `${truth.x * 100}%`,
-              top: `${truth.y * 100}%`,
-              width: `${truth.w * 100}%`,
-              height: `${truth.h * 100}%`,
-            }}
-          />
-        ) : null}
+        {showTruth
+          ? truths.map((box, i) => (
+              <div
+                key={`truth-${i}`}
+                className="box box--truth"
+                style={{
+                  left: `${box.x * 100}%`,
+                  top: `${box.y * 100}%`,
+                  width: `${box.w * 100}%`,
+                  height: `${box.h * 100}%`,
+                }}
+              />
+            ))
+          : null}
       </div>
     </div>
   )
