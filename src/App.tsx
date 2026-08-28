@@ -7,7 +7,7 @@ import {
   teachingTargets,
   type CaseItem,
 } from './lib/cases'
-import { bestIouMulti, type NormBox } from './lib/geometry'
+import { scoreLocalization, type NormBox } from './lib/geometry'
 import {
   clearSession,
   createEmptySession,
@@ -69,11 +69,11 @@ export default function App() {
 
   const item = cases[index] ?? DEMO_CASES[0]
   const targets = useMemo(() => teachingTargets(item), [item])
-  const score = useMemo(
-    () => (guesses.length > 0 ? bestIouMulti(guesses, targets) : 0),
+  const result = useMemo(
+    () => scoreLocalization(guesses, targets, IOU_PASS),
     [guesses, targets],
   )
-  const passed = score >= IOU_PASS
+  const passed = result.passed
   const stats = summarizeAttempts(session.attempts)
   const completedCount = session.completedCaseIds.length
   const targetCount = targets.length
@@ -85,11 +85,11 @@ export default function App() {
 
   const scoreAttempt = () => {
     if (phase !== 'locate' || guesses.length === 0) return
-    const iouScore = bestIouMulti(guesses, targets)
+    const scored = scoreLocalization(guesses, targets, IOU_PASS)
     setPhase('scored')
     setShowGuesses(true)
     setShowTruth(true)
-    setSession((s) => recordAttempt(s, item, iouScore))
+    setSession((s) => recordAttempt(s, item, scored.minIou))
   }
 
   const retry = () => {
@@ -154,8 +154,8 @@ export default function App() {
           <p className="hint">
             {phase === 'locate'
               ? targetCount > 1
-                ? `Drag ${targetCount} boxes if the sentence names multiple regions, then score.`
-                : 'Drag one or more boxes over the region this sentence describes, then score.'
+                ? `Draw a box on each of the ${targetCount} regions this sentence names, then score.`
+                : 'Drag a box over the region this sentence describes, then score.'
               : passed
                 ? 'Hit. Toggle overlays to compare, then go to the next case.'
                 : 'Miss. Toggle overlays, then try again or move on.'}
@@ -171,8 +171,9 @@ export default function App() {
             <div className="result" data-pass={passed}>
               <p className="result-label">{passed ? 'Pass' : 'Miss'}</p>
               <p className="result-meta">
-                Best IoU {score.toFixed(2)} · pass at {IOU_PASS.toFixed(2)}
-                {targetCount > 1 ? ` · ${targetCount} teaching regions` : ''}
+                {result.matched}/{result.total} region
+                {result.total === 1 ? '' : 's'} matched · weakest IoU{' '}
+                {result.minIou.toFixed(2)} · pass each at {IOU_PASS.toFixed(2)}
               </p>
             </div>
           ) : null}
@@ -273,9 +274,9 @@ export default function App() {
 
       <footer className="foot">
         <p>
-          Self-eval mode: progress saves in this browser. Score uses your best
-          box against any teaching region. Export the log when you want a record
-          for later review.
+          Self-eval mode: progress saves in this browser. You must match every
+          teaching region to pass. Export the log when you want a record for later
+          review.
         </p>
       </footer>
     </div>

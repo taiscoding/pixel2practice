@@ -52,6 +52,45 @@ export function bestIouMulti(guesses: NormBox[], truths: NormBox[]): number {
   return best
 }
 
+export function bestIouForTarget(guesses: NormBox[], target: NormBox): number {
+  if (guesses.length === 0) return 0
+  let best = 0
+  for (const guess of guesses) {
+    best = Math.max(best, iou(guess, target))
+  }
+  return best
+}
+
+export type LocalizationScore = {
+  passed: boolean
+  matched: number
+  total: number
+  /** Best IoU per teaching region (same order as truths). */
+  perTarget: number[]
+  /** Minimum best IoU across regions — weakest link when all must pass. */
+  minIou: number
+}
+
+export function scoreLocalization(
+  guesses: NormBox[],
+  truths: NormBox[],
+  threshold: number,
+): LocalizationScore {
+  if (truths.length === 0) {
+    return { passed: false, matched: 0, total: 0, perTarget: [], minIou: 0 }
+  }
+  const perTarget = truths.map((target) => bestIouForTarget(guesses, target))
+  const matched = perTarget.filter((score) => score >= threshold).length
+  const minIou = Math.min(...perTarget)
+  return {
+    passed: guesses.length > 0 && matched === truths.length,
+    matched,
+    total: truths.length,
+    perTarget,
+    minIou,
+  }
+}
+
 export function pointInBox(px: number, py: number, box: NormBox): boolean {
   return (
     px >= box.x &&
