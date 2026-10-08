@@ -1,6 +1,6 @@
 # pixel2practice
 
-Every radiologist has a diagnostic signature: where their eyes go, how they decide, how it drifts with training and fatigue. This is a tool for learning yours, and for studying how signatures form.
+Every radiologist has a diagnostic signature. This is a tool for learning yours.
 
 Read a finding sentence, box the pixels, score IoU ≥ 0.25 against radiologist teaching targets.
 
