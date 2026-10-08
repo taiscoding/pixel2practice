@@ -1,6 +1,8 @@
 # pixel2practice
 
-Cued localization practice: read a finding sentence, box the pixels, score IoU ≥ 0.25 against radiologist teaching targets.
+Every radiologist has a diagnostic signature: where their eyes go, how they decide, how it drifts with training and fatigue. This is a tool for learning yours, and for studying how signatures form.
+
+Read a finding sentence, box the pixels, score IoU ≥ 0.25 against radiologist teaching targets.
 
 ## Run locally
 
@@ -37,4 +39,4 @@ npm run deploy:cloudflare
 
 ## Self-eval
 
-Session stats and attempt logs persist in the browser. Export the JSON log when you want a record for later review.
+Session stats and attempt logs persist in the browser, so you can watch your signature develop over time. Export the JSON log when you want a record for later review.
