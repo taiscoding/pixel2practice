@@ -1,5 +1,7 @@
 # pixel2practice
 
+[![CI](https://github.com/taiscoding/pixel2practice/actions/workflows/ci.yml/badge.svg)](https://github.com/taiscoding/pixel2practice/actions/workflows/ci.yml)
+
 Every radiologist has a diagnostic signature. This is a tool for learning yours.
 
 Read a finding sentence, box the pixels, score IoU ≥ 0.25 against radiologist teaching targets.
