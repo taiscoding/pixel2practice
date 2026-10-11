@@ -15,9 +15,40 @@ export type ReadResult = {
   findings: Finding[]
 }
 
-export const DEFAULT_MODEL = 'gpt-4o'
-const KEY_STORAGE = 'pixel2practice.reader.key'
+export type ProviderId = 'openai' | 'openrouter'
+
+export type ProviderInfo = {
+  label: string
+  endpoint: string
+  defaultModel: string
+  keyUrl: string
+  blurb: string
+}
+
+export const PROVIDERS: Record<ProviderId, ProviderInfo> = {
+  openai: {
+    label: 'OpenAI',
+    endpoint: 'https://api.openai.com/v1/chat/completions',
+    defaultModel: 'gpt-4o',
+    keyUrl: 'https://platform.openai.com/api-keys',
+    blurb: 'Direct. Works from the browser.',
+  },
+  openrouter: {
+    label: 'OpenRouter',
+    endpoint: 'https://openrouter.ai/api/v1/chat/completions',
+    defaultModel: 'anthropic/claude-sonnet-4',
+    keyUrl: 'https://openrouter.ai/keys',
+    blurb: 'One key, many models including Claude. Works from the browser.',
+  },
+}
+
+export const PROVIDER_IDS: ProviderId[] = ['openai', 'openrouter']
+
+const PROVIDER_STORAGE = 'pixel2practice.reader.provider'
 const MODEL_STORAGE = 'pixel2practice.reader.model'
+const LEGACY_KEY_STORAGE = 'pixel2practice.reader.key'
+const keyStorage = (provider: ProviderId) =>
+  `pixel2practice.reader.key.${provider}`
 
 export const OPEN_PROMPT = [
   'You are a radiology reader looking at a chest radiograph.',
@@ -40,18 +71,41 @@ export const POINTED_PROMPT = [
   'low confidence rather than inventing a finding.',
 ].join(' ')
 
-export function getReaderKey(): string {
+export function getProvider(): ProviderId {
   try {
-    return localStorage.getItem(KEY_STORAGE) ?? ''
+    return localStorage.getItem(PROVIDER_STORAGE) === 'openrouter'
+      ? 'openrouter'
+      : 'openai'
+  } catch {
+    return 'openai'
+  }
+}
+
+export function setProvider(provider: ProviderId): void {
+  try {
+    localStorage.setItem(PROVIDER_STORAGE, provider)
+  } catch {
+    /* quota or private mode */
+  }
+}
+
+export function getReaderKey(provider: ProviderId): string {
+  try {
+    const key = localStorage.getItem(keyStorage(provider))
+    if (key) return key
+    if (provider === 'openai') {
+      return localStorage.getItem(LEGACY_KEY_STORAGE) ?? ''
+    }
+    return ''
   } catch {
     return ''
   }
 }
 
-export function setReaderKey(key: string): void {
+export function setReaderKey(provider: ProviderId, key: string): void {
   try {
-    if (key) localStorage.setItem(KEY_STORAGE, key)
-    else localStorage.removeItem(KEY_STORAGE)
+    if (key) localStorage.setItem(keyStorage(provider), key)
+    else localStorage.removeItem(keyStorage(provider))
   } catch {
     /* quota or private mode */
   }
@@ -59,15 +113,16 @@ export function setReaderKey(key: string): void {
 
 export function getReaderModel(): string {
   try {
-    return localStorage.getItem(MODEL_STORAGE) ?? DEFAULT_MODEL
+    return localStorage.getItem(MODEL_STORAGE) ?? ''
   } catch {
-    return DEFAULT_MODEL
+    return ''
   }
 }
 
 export function setReaderModel(model: string): void {
   try {
-    localStorage.setItem(MODEL_STORAGE, model)
+    if (model) localStorage.setItem(MODEL_STORAGE, model)
+    else localStorage.removeItem(MODEL_STORAGE)
   } catch {
     /* quota or private mode */
   }
@@ -104,26 +159,38 @@ function coerceFindings(raw: unknown): Finding[] {
 }
 
 export type ReaderOpts = {
+  provider: ProviderId
   key: string
   model: string
 }
 
-/** Run one read: prompt plus images against the provider. */
+/**
+ * Run one read: prompt plus images against the provider.
+ * Note: Anthropic's own API blocks browser calls (no CORS), so a direct
+ * Anthropic key will not work here. OpenRouter is the way to reach Claude
+ * from the browser.
+ */
 export async function readImages(
   images: string[],
   prompt: string,
   opts: ReaderOpts,
 ): Promise<ReadResult> {
+  const info = PROVIDERS[opts.provider]
   const controller = new AbortController()
   const timer = setTimeout(() => controller.abort(), 90000)
   try {
-    const res = await fetch('https://api.openai.com/v1/chat/completions', {
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${opts.key}`,
+    }
+    if (opts.provider === 'openrouter') {
+      headers['HTTP-Referer'] = window.location.origin
+      headers['X-Title'] = 'pixel2practice'
+    }
+    const res = await fetch(info.endpoint, {
       method: 'POST',
       signal: controller.signal,
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${opts.key}`,
-      },
+      headers,
       body: JSON.stringify({
         model: opts.model,
         temperature: 0.2,
@@ -145,7 +212,7 @@ export async function readImages(
     if (!res.ok) {
       if (res.status === 401) {
         throw new ReaderError(
-          'The API key was rejected. Check the key in reader settings.',
+          `The ${info.label} key was rejected. Check the key in reader settings.`,
           401,
         )
       }

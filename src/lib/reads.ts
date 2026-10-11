@@ -1,10 +1,11 @@
 import type { NormBox } from './geometry'
-import type { ReadResult } from './reader'
+import type { ProviderId, ReadResult } from './reader'
 
 /** One pointed-read pair: the clinician's box plus both model reads. */
 export type ReadRecord = {
   caseId: string
   box: NormBox
+  provider: ProviderId
   model: string
   open: ReadResult
   pointed: ReadResult

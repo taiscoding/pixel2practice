@@ -45,4 +45,4 @@ Session stats and attempt logs persist in the browser, so you can watch your sig
 
 ## Point mode
 
-The loop run backward. No sentence: draw a box where something looks off, and the reader characterizes your box two ways, once open over the whole film and once pointed at the marked region (red box overlay plus a zoomed crop, Set-of-Mark style). Bring your own OpenAI key in the reader settings; it stays in your browser. Read pairs are logged and exportable, so pointed-vs-open becomes a measurable delta instead of a vibe.
+The loop run backward. No sentence: draw a box where something looks off, and the reader characterizes your box two ways, once open over the whole film and once pointed at the marked region (red box overlay plus a zoomed crop, Set-of-Mark style). Bring your own key in the reader settings; it stays in your browser. Two providers: OpenAI direct, or OpenRouter (one key, many models including Claude, works from the browser; Anthropic's own API blocks browser calls). Read pairs are logged and exportable, so pointed-vs-open becomes a measurable delta instead of a vibe.

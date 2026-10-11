@@ -530,16 +530,23 @@ button {
   color: var(--muted);
 }
 
-.field input {
+.field input,
+.field select {
   background: #0c0d0f;
   border: 1px solid var(--line);
   border-radius: 3px;
   color: var(--ink);
   padding: 0.5rem 0.6rem;
+  font-family: inherit;
   font-size: 0.85rem;
 }
 
-.field input:focus-visible {
+.field input:focus-visible,
+.field select:focus-visible {
   outline: 2px solid var(--amber);
   outline-offset: 1px;
+}
+
+.settings a {
+  color: var(--amber);
 }

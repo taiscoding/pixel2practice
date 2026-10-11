@@ -9,15 +9,19 @@ import {
   plainImageUrl,
 } from '../lib/markImage'
 import {
-  DEFAULT_MODEL,
   OPEN_PROMPT,
   POINTED_PROMPT,
+  PROVIDERS,
+  PROVIDER_IDS,
   ReaderError,
+  getProvider,
   getReaderKey,
   getReaderModel,
   readImages,
+  setProvider,
   setReaderKey,
   setReaderModel,
+  type ProviderId,
   type ReadResult,
 } from '../lib/reader'
 import {
@@ -75,7 +79,8 @@ export function PointMode({ item, onNext }: Props) {
   const [open, setOpen] = useState<ReadResult | null>(null)
   const [pointed, setPointed] = useState<ReadResult | null>(null)
   const [error, setError] = useState<string | null>(null)
-  const [key, setKey] = useState(() => getReaderKey())
+  const [provider, setProviderState] = useState<ProviderId>(() => getProvider())
+  const [key, setKey] = useState(() => getReaderKey(getProvider()))
   const [model, setModel] = useState(() => getReaderModel())
   const [showTruth, setShowTruth] = useState(false)
   const [reads, setReads] = useState<ReadRecord[]>(() => loadReads())
@@ -91,16 +96,22 @@ export function PointMode({ item, onNext }: Props) {
     return Math.max(...targets.map((t) => bestIouForTarget([box], t)))
   }, [box, targets])
 
+  const switchProvider = (next: ProviderId) => {
+    setProviderState(next)
+    setProvider(next)
+    setKey(getReaderKey(next))
+  }
+
   const askReader = async () => {
     if (!box || phase !== 'point') return
     const readerKey = key.trim()
     if (!readerKey) {
       setError(
-        'Add your reader API key in the settings below. The key stays in this browser.',
+        `Add your ${PROVIDERS[provider].label} API key in the settings below. The key stays in this browser.`,
       )
       return
     }
-    const readerModel = model.trim() || DEFAULT_MODEL
+    const readerModel = model.trim() || PROVIDERS[provider].defaultModel
     setPhase('reading')
     setError(null)
     try {
@@ -110,10 +121,12 @@ export function PointMode({ item, onNext }: Props) {
       const crop = cropImageUrl(img, box)
       const [openRes, pointedRes] = await Promise.all([
         readImages([full], OPEN_PROMPT, {
+          provider,
           key: readerKey,
           model: readerModel,
         }),
         readImages([marked, crop], POINTED_PROMPT, {
+          provider,
           key: readerKey,
           model: readerModel,
         }),
@@ -125,6 +138,7 @@ export function PointMode({ item, onNext }: Props) {
         recordRead(prev, {
           caseId: item.id,
           box,
+          provider,
           model: readerModel,
           open: openRes,
           pointed: pointedRes,
@@ -249,16 +263,34 @@ export function PointMode({ item, onNext }: Props) {
           <summary>Reader settings</summary>
           <div className="fields">
             <div className="field">
-              <label htmlFor="reader-key">API key</label>
+              <label htmlFor="reader-provider">Provider</label>
+              <select
+                id="reader-provider"
+                value={provider}
+                onChange={(e) =>
+                  switchProvider(e.target.value as ProviderId)
+                }
+              >
+                {PROVIDER_IDS.map((id) => (
+                  <option key={id} value={id}>
+                    {PROVIDERS[id].label} — {PROVIDERS[id].blurb}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="field">
+              <label htmlFor="reader-key">
+                {PROVIDERS[provider].label} API key
+              </label>
               <input
                 id="reader-key"
                 type="password"
                 value={key}
                 autoComplete="off"
-                placeholder="sk-..."
+                placeholder="paste key"
                 onChange={(e) => {
                   setKey(e.target.value)
-                  setReaderKey(e.target.value)
+                  setReaderKey(provider, e.target.value)
                 }}
               />
             </div>
@@ -268,7 +300,7 @@ export function PointMode({ item, onNext }: Props) {
                 id="reader-model"
                 value={model}
                 autoComplete="off"
-                placeholder={DEFAULT_MODEL}
+                placeholder={PROVIDERS[provider].defaultModel}
                 onChange={(e) => {
                   setModel(e.target.value)
                   setReaderModel(e.target.value)
@@ -276,8 +308,18 @@ export function PointMode({ item, onNext }: Props) {
               />
             </div>
             <p className="hint">
-              The key stays in this browser. Demo only: the reader is a general
-              vision model, not a medical device. Do not use on real patients.
+              Get a key at{' '}
+              <a
+                href={PROVIDERS[provider].keyUrl}
+                target="_blank"
+                rel="noreferrer"
+              >
+                {PROVIDERS[provider].keyUrl}
+              </a>
+              . The key stays in this browser. Anthropic's own API blocks
+              browser calls, so use OpenRouter to reach Claude. Demo only:
+              the reader is a general vision model, not a medical device. Do
+              not use on real patients.
             </p>
           </div>
         </details>
