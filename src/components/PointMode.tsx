@@ -278,7 +278,7 @@ export function PointMode({ item, onNext }: Props) {
               >
                 {PROVIDER_IDS.map((id) => (
                   <option key={id} value={id}>
-                    {PROVIDERS[id].label} — {PROVIDERS[id].blurb}
+                    {PROVIDERS[id].label}
                   </option>
                 ))}
               </select>

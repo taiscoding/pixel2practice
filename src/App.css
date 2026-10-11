@@ -539,6 +539,8 @@ button {
   padding: 0.5rem 0.6rem;
   font-family: inherit;
   font-size: 0.85rem;
+  width: 100%;
+  min-width: 0;
 }
 
 .field input:focus-visible,
