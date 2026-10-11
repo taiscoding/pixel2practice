@@ -20,6 +20,20 @@ export function clamp01(n: number): number {
   return Math.min(1, Math.max(0, n))
 }
 
+/**
+ * Expand a box by `pad` (fraction of its own size) on every side,
+ * clamped to the image.
+ */
+export function padBox(box: NormBox, pad: number): NormBox {
+  const px = box.w * pad
+  const py = box.h * pad
+  const x = clamp01(box.x - px)
+  const y = clamp01(box.y - py)
+  const x2 = clamp01(box.x + box.w + px)
+  const y2 = clamp01(box.y + box.h + py)
+  return { x, y, w: Math.max(0, x2 - x), h: Math.max(0, y2 - y) }
+}
+
 export function iou(a: NormBox, b: NormBox): number {
   const ax2 = a.x + a.w
   const ay2 = a.y + a.h

@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { FilmStage } from './components/FilmStage'
+import { PointMode } from './components/PointMode'
 import {
   DEMO_CASES,
   IOU_PASS,
@@ -21,6 +22,7 @@ import {
 import './App.css'
 
 type Phase = 'locate' | 'scored'
+type Mode = 'locate' | 'point'
 
 export default function App() {
   const [cases, setCases] = useState<CaseItem[]>(DEMO_CASES)
@@ -31,6 +33,7 @@ export default function App() {
   const [index, setIndex] = useState(() => loadSession()?.index ?? 0)
   const [guesses, setGuesses] = useState<NormBox[]>([])
   const [phase, setPhase] = useState<Phase>('locate')
+  const [mode, setMode] = useState<Mode>('locate')
   const [showGuesses, setShowGuesses] = useState(true)
   const [showTruth, setShowTruth] = useState(true)
 
@@ -138,7 +141,27 @@ export default function App() {
       <header className="top">
         <div className="brand">
           <p className="wordmark">pixel2practice</p>
-          <p className="tag">Find what the finding names.</p>
+          <p className="tag">
+            {mode === 'locate'
+              ? 'Find what the finding names.'
+              : 'Point at what looks off. Let the reader characterize it.'}
+          </p>
+        </div>
+        <div className="mode-toggle" role="group" aria-label="Mode">
+          <button
+            type="button"
+            className={`btn mode-btn${mode === 'locate' ? ' mode-btn--active' : ''}`}
+            onClick={() => setMode('locate')}
+          >
+            Locate
+          </button>
+          <button
+            type="button"
+            className={`btn mode-btn${mode === 'point' ? ' mode-btn--active' : ''}`}
+            onClick={() => setMode('point')}
+          >
+            Point
+          </button>
         </div>
         <p className="scoreline">
           {stats.passes}/{stats.total} pass
@@ -148,7 +171,9 @@ export default function App() {
       </header>
 
       <main className="stage">
-        <aside className="cue-panel">
+        {mode === 'locate' ? (
+          <>
+            <aside className="cue-panel">
           <p className="kicker">{item.modality}</p>
           <h1 className="cue">{item.cue}</h1>
           <p className="hint">
@@ -260,16 +285,20 @@ export default function App() {
           <p className="attr">{item.attribution}</p>
         </aside>
 
-        <FilmStage
-          src={item.image}
-          alt={`Chest radiograph for case ${item.id}`}
-          enabled={phase === 'locate'}
-          truths={targets}
-          showTruth={phase === 'scored' && showTruth}
-          showGuesses={phase === 'locate' || showGuesses}
-          guesses={guesses}
-          onAddBox={addBox}
-        />
+            <FilmStage
+              src={item.image}
+              alt={`Chest radiograph for case ${item.id}`}
+              enabled={phase === 'locate'}
+              truths={targets}
+              showTruth={phase === 'scored' && showTruth}
+              showGuesses={phase === 'locate' || showGuesses}
+              guesses={guesses}
+              onAddBox={addBox}
+            />
+          </>
+        ) : (
+          <PointMode key={item.id} item={item} onNext={next} />
+        )}
       </main>
 
       <footer className="foot">

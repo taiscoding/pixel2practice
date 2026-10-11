@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
-    "test": "node --experimental-strip-types --test src/lib/geometry.test.ts",
+    "test": "node --experimental-strip-types --test src/lib/*.test.ts",
     "lint": "oxlint",
     "preview": "vite preview",
     "deploy:cloudflare": "npm run build && wrangler pages deploy dist --project-name pixel2practice"

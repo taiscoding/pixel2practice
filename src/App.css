@@ -410,3 +410,136 @@ button {
     transition: none;
   }
 }
+
+.mode-toggle {
+  display: flex;
+  gap: 0.35rem;
+}
+
+.mode-btn {
+  padding: 0.4rem 0.8rem;
+  font-family: var(--mono);
+  font-size: 0.78rem;
+  color: var(--muted);
+}
+
+.mode-btn--active {
+  color: var(--ink);
+  border-color: var(--amber);
+  background: var(--amber-soft);
+}
+
+.reads {
+  display: grid;
+  gap: 0.7rem;
+}
+
+.read-panel {
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  padding: 0.75rem 0.85rem;
+  background: var(--panel);
+}
+
+.read-panel h3 {
+  margin: 0 0 0.35rem;
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.read-panel--pointed h3 {
+  color: var(--amber);
+}
+
+.finding {
+  padding: 0.55rem 0;
+  border-top: 1px solid var(--line);
+}
+
+.finding p {
+  margin: 0;
+  font-size: 0.88rem;
+  line-height: 1.45;
+}
+
+.finding p.finding-meta {
+  display: flex;
+  gap: 0.75rem;
+  margin-top: 0.3rem;
+  font-family: var(--mono);
+  font-size: 0.72rem;
+}
+
+.finding-loc {
+  color: var(--muted);
+}
+
+.finding-conf {
+  color: var(--amber);
+}
+
+.compare-line {
+  margin: 0;
+  font-family: var(--mono);
+  font-size: 0.78rem;
+  color: var(--muted);
+}
+
+.error {
+  margin: 0;
+  color: var(--miss);
+  font-size: 0.88rem;
+  line-height: 1.45;
+}
+
+.settings {
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  padding: 0.7rem 0.85rem;
+  background: var(--panel);
+}
+
+.settings summary {
+  cursor: pointer;
+  font-family: var(--mono);
+  font-size: 0.78rem;
+  color: var(--muted);
+}
+
+.settings .fields {
+  display: grid;
+  gap: 0.65rem;
+  margin-top: 0.7rem;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.field label {
+  font-family: var(--mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.field input {
+  background: #0c0d0f;
+  border: 1px solid var(--line);
+  border-radius: 3px;
+  color: var(--ink);
+  padding: 0.5rem 0.6rem;
+  font-size: 0.85rem;
+}
+
+.field input:focus-visible {
+  outline: 2px solid var(--amber);
+  outline-offset: 1px;
+}
