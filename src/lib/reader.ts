@@ -30,7 +30,7 @@ export const PROVIDERS: Record<ProviderId, ProviderInfo> = {
     label: 'Gemini',
     endpoint:
       'https://generativelanguage.googleapis.com/v1beta/openai/chat/completions',
-    defaultModel: 'gemini-2.5-flash',
+    defaultModel: 'gemini-3.8-flash',
     keyUrl: 'https://aistudio.google.com/apikey',
     blurb: 'Free tier. Strong vision. Works from the browser.',
   },
