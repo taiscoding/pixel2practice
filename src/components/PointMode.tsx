@@ -14,10 +14,12 @@ import {
   PROVIDERS,
   PROVIDER_IDS,
   ReaderError,
+  getCustomEndpoint,
   getProvider,
   getReaderKey,
   getReaderModel,
   readImages,
+  setCustomEndpoint,
   setProvider,
   setReaderKey,
   setReaderModel,
@@ -82,6 +84,7 @@ export function PointMode({ item, onNext }: Props) {
   const [provider, setProviderState] = useState<ProviderId>(() => getProvider())
   const [key, setKey] = useState(() => getReaderKey(getProvider()))
   const [model, setModel] = useState(() => getReaderModel())
+  const [endpoint, setEndpoint] = useState(() => getCustomEndpoint())
   const [showTruth, setShowTruth] = useState(false)
   const [reads, setReads] = useState<ReadRecord[]>(() => loadReads())
 
@@ -124,11 +127,13 @@ export function PointMode({ item, onNext }: Props) {
           provider,
           key: readerKey,
           model: readerModel,
+          endpoint,
         }),
         readImages([marked, crop], POINTED_PROMPT, {
           provider,
           key: readerKey,
           model: readerModel,
+          endpoint,
         }),
       ])
       setOpen(openRes)
@@ -278,6 +283,21 @@ export function PointMode({ item, onNext }: Props) {
                 ))}
               </select>
             </div>
+            {provider === 'custom' ? (
+              <div className="field">
+                <label htmlFor="reader-endpoint">Endpoint URL</label>
+                <input
+                  id="reader-endpoint"
+                  value={endpoint}
+                  autoComplete="off"
+                  placeholder="https://.../chat/completions"
+                  onChange={(e) => {
+                    setEndpoint(e.target.value)
+                    setCustomEndpoint(e.target.value)
+                  }}
+                />
+              </div>
+            ) : null}
             <div className="field">
               <label htmlFor="reader-key">
                 {PROVIDERS[provider].label} API key
@@ -308,18 +328,33 @@ export function PointMode({ item, onNext }: Props) {
               />
             </div>
             <p className="hint">
-              Get a key at{' '}
-              <a
-                href={PROVIDERS[provider].keyUrl}
-                target="_blank"
-                rel="noreferrer"
-              >
-                {PROVIDERS[provider].keyUrl}
-              </a>
-              . The key stays in this browser. Anthropic's own API blocks
-              browser calls, so use OpenRouter to reach Claude. Demo only:
-              the reader is a general vision model, not a medical device. Do
-              not use on real patients.
+              {provider === 'custom' ? (
+                <>
+                  Free routes: Ollama on this machine (endpoint{' '}
+                  http://localhost:11434/v1/chat/completions, pull a vision
+                  model, serve with OLLAMA_ORIGINS set to this page's
+                  origin), or Gemini's free tier (endpoint{' '}
+                  https://generativelanguage.googleapis.com/v1beta/openai/chat/completions,
+                  key from AI Studio). OpenRouter also lists free :free
+                  models.
+                </>
+              ) : (
+                <>
+                  Get a key at{' '}
+                  <a
+                    href={PROVIDERS[provider].keyUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    {PROVIDERS[provider].keyUrl}
+                  </a>
+                  . Anthropic's own API blocks browser calls, so use
+                  OpenRouter to reach Claude.{' '}
+                </>
+              )}
+              The key stays in this browser. Demo only: the reader is a
+              general vision model, not a medical device. Do not use on real
+              patients.
             </p>
           </div>
         </details>

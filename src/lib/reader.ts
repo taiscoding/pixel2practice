@@ -15,7 +15,7 @@ export type ReadResult = {
   findings: Finding[]
 }
 
-export type ProviderId = 'openai' | 'openrouter'
+export type ProviderId = 'openai' | 'openrouter' | 'custom'
 
 export type ProviderInfo = {
   label: string
@@ -40,12 +40,20 @@ export const PROVIDERS: Record<ProviderId, ProviderInfo> = {
     keyUrl: 'https://openrouter.ai/keys',
     blurb: 'One key, many models including Claude. Works from the browser.',
   },
+  custom: {
+    label: 'Custom',
+    endpoint: '',
+    defaultModel: '',
+    keyUrl: '',
+    blurb: 'Any OpenAI-compatible endpoint. Ollama, Gemini free tier, proxies.',
+  },
 }
 
-export const PROVIDER_IDS: ProviderId[] = ['openai', 'openrouter']
+export const PROVIDER_IDS: ProviderId[] = ['openai', 'openrouter', 'custom']
 
 const PROVIDER_STORAGE = 'pixel2practice.reader.provider'
 const MODEL_STORAGE = 'pixel2practice.reader.model'
+const ENDPOINT_STORAGE = 'pixel2practice.reader.endpoint'
 const LEGACY_KEY_STORAGE = 'pixel2practice.reader.key'
 const keyStorage = (provider: ProviderId) =>
   `pixel2practice.reader.key.${provider}`
@@ -73,9 +81,9 @@ export const POINTED_PROMPT = [
 
 export function getProvider(): ProviderId {
   try {
-    return localStorage.getItem(PROVIDER_STORAGE) === 'openrouter'
-      ? 'openrouter'
-      : 'openai'
+    const v = localStorage.getItem(PROVIDER_STORAGE)
+    if (v === 'openrouter' || v === 'custom') return v
+    return 'openai'
   } catch {
     return 'openai'
   }
@@ -116,6 +124,23 @@ export function getReaderModel(): string {
     return localStorage.getItem(MODEL_STORAGE) ?? ''
   } catch {
     return ''
+  }
+}
+
+export function getCustomEndpoint(): string {
+  try {
+    return localStorage.getItem(ENDPOINT_STORAGE) ?? ''
+  } catch {
+    return ''
+  }
+}
+
+export function setCustomEndpoint(endpoint: string): void {
+  try {
+    if (endpoint) localStorage.setItem(ENDPOINT_STORAGE, endpoint)
+    else localStorage.removeItem(ENDPOINT_STORAGE)
+  } catch {
+    /* quota or private mode */
   }
 }
 
@@ -162,6 +187,8 @@ export type ReaderOpts = {
   provider: ProviderId
   key: string
   model: string
+  /** Required when provider is 'custom'. */
+  endpoint?: string
 }
 
 /**
@@ -176,6 +203,13 @@ export async function readImages(
   opts: ReaderOpts,
 ): Promise<ReadResult> {
   const info = PROVIDERS[opts.provider]
+  const endpoint =
+    opts.provider === 'custom' ? (opts.endpoint ?? '').trim() : info.endpoint
+  if (!endpoint) {
+    throw new ReaderError(
+      'Set the endpoint URL in reader settings first.',
+    )
+  }
   const controller = new AbortController()
   const timer = setTimeout(() => controller.abort(), 90000)
   try {
@@ -187,7 +221,7 @@ export async function readImages(
       headers['HTTP-Referer'] = window.location.origin
       headers['X-Title'] = 'pixel2practice'
     }
-    const res = await fetch(info.endpoint, {
+    const res = await fetch(endpoint, {
       method: 'POST',
       signal: controller.signal,
       headers,
