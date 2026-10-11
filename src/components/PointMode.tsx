@@ -333,10 +333,7 @@ export function PointMode({ item, onNext }: Props) {
                   Free routes: Ollama on this machine (endpoint{' '}
                   http://localhost:11434/v1/chat/completions, pull a vision
                   model, serve with OLLAMA_ORIGINS set to this page's
-                  origin), or Gemini's free tier (endpoint{' '}
-                  https://generativelanguage.googleapis.com/v1beta/openai/chat/completions,
-                  key from AI Studio). OpenRouter also lists free :free
-                  models.
+                  origin). OpenRouter also lists free :free models.
                 </>
               ) : (
                 <>

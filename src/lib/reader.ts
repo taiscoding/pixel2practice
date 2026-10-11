@@ -15,7 +15,7 @@ export type ReadResult = {
   findings: Finding[]
 }
 
-export type ProviderId = 'openai' | 'openrouter' | 'custom'
+export type ProviderId = 'gemini' | 'openai' | 'openrouter' | 'custom'
 
 export type ProviderInfo = {
   label: string
@@ -26,6 +26,14 @@ export type ProviderInfo = {
 }
 
 export const PROVIDERS: Record<ProviderId, ProviderInfo> = {
+  gemini: {
+    label: 'Gemini',
+    endpoint:
+      'https://generativelanguage.googleapis.com/v1beta/openai/chat/completions',
+    defaultModel: 'gemini-2.0-flash',
+    keyUrl: 'https://aistudio.google.com/apikey',
+    blurb: 'Free tier. Strong vision. Works from the browser.',
+  },
   openai: {
     label: 'OpenAI',
     endpoint: 'https://api.openai.com/v1/chat/completions',
@@ -45,11 +53,16 @@ export const PROVIDERS: Record<ProviderId, ProviderInfo> = {
     endpoint: '',
     defaultModel: '',
     keyUrl: '',
-    blurb: 'Any OpenAI-compatible endpoint. Ollama, Gemini free tier, proxies.',
+    blurb: 'Any other OpenAI-compatible endpoint. Ollama, proxies, other keys.',
   },
 }
 
-export const PROVIDER_IDS: ProviderId[] = ['openai', 'openrouter', 'custom']
+export const PROVIDER_IDS: ProviderId[] = [
+  'gemini',
+  'openai',
+  'openrouter',
+  'custom',
+]
 
 const PROVIDER_STORAGE = 'pixel2practice.reader.provider'
 const MODEL_STORAGE = 'pixel2practice.reader.model'
@@ -82,10 +95,10 @@ export const POINTED_PROMPT = [
 export function getProvider(): ProviderId {
   try {
     const v = localStorage.getItem(PROVIDER_STORAGE)
-    if (v === 'openrouter' || v === 'custom') return v
-    return 'openai'
+    if (v === 'openai' || v === 'openrouter' || v === 'custom') return v
+    return 'gemini'
   } catch {
-    return 'openai'
+    return 'gemini'
   }
 }
 
