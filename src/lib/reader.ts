@@ -30,7 +30,7 @@ export const PROVIDERS: Record<ProviderId, ProviderInfo> = {
     label: 'Gemini',
     endpoint:
       'https://generativelanguage.googleapis.com/v1beta/openai/chat/completions',
-    defaultModel: 'gemini-2.0-flash',
+    defaultModel: 'gemini-2.5-flash',
     keyUrl: 'https://aistudio.google.com/apikey',
     blurb: 'Free tier. Strong vision. Works from the browser.',
   },
@@ -269,8 +269,12 @@ export async function readImages(
           429,
         )
       }
+      const body = await res.text().catch(() => '')
+      const detail = body.slice(0, 300).replace(/\s+/g, ' ').trim()
       throw new ReaderError(
-        `Reader request failed (HTTP ${res.status}).`,
+        detail
+          ? `Reader request failed (HTTP ${res.status}): ${detail}`
+          : `Reader request failed (HTTP ${res.status}).`,
         res.status,
       )
     }
